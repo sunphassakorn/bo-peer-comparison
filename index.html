@@ -121,13 +121,18 @@
       }
       section.block h2 {
         font-size: 15px; letter-spacing: 2px; text-transform: uppercase;
-        color: var(--muted); margin-bottom: 16px; font-weight: 600;
+        color: var(--muted); margin-bottom: 0; font-weight: 600;
         display: flex; align-items: center; gap: 10px;
       }
       section.block h2::before {
         content: ""; display: inline-block;
         width: 4px; height: 18px; background: var(--brand); border-radius: 2px;
       }
+      .block-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+      }
+      #mainRelatedToggle { font-size: 12px; padding: 7px 14px; }
 
       .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 960px; }
@@ -523,6 +528,11 @@
           BO Peer Comparison <span class="accent">Valuation</span>
         </h1>
         <div class="header-actions no-print">
+          <div class="scenario-toggle" id="scenarioToggle">
+            <span class="scenario-label">BO Valuation:</span>
+            <button class="scenario-btn" data-scenario="A" id="scenarioBtnA">Target</button>
+            <button class="scenario-btn active" data-scenario="B" id="scenarioBtnB">Current</button>
+          </div>
           <button class="btn ghost" id="refreshBtn">
             <span id="refreshIcon">&#x21bb;</span>
             <span id="refreshText">Refresh Prices</span>
@@ -537,7 +547,10 @@
       </div>
 
       <section class="block">
-        <h2>Comparison Table</h2>
+        <div class="block-head">
+          <h2>Comparison Table</h2>
+          <button class="col-toggle related-toggle active" id="mainRelatedToggle" data-col="related" title="Show or hide crypto-related businesses">Crypto-Related: ON</button>
+        </div>
         <div class="table-wrap">
           <table id="compTable">
             <thead>
@@ -612,10 +625,10 @@
           ticker: "", autoUpdate: false,
           lastPriceUpdate: 0, lastPriceError: "",
           scenarios: {
-            A: { label: "Current", price: 485, shares: 45, revenue: 1617, netProfit: 308, marketCapOverride: 22000 },
-            B: { label: "Target", price: 1200, shares: 45, revenue: 3000, netProfit: 800, marketCapOverride: 54000 },
+            A: { label: "Target", price: 1200, shares: 45, revenue: 3000, netProfit: 800, marketCapOverride: 54000 },
+            B: { label: "Current", price: 485, shares: 45, revenue: 1617, netProfit: 308, marketCapOverride: 22000 },
           },
-          activeScenario: "A",
+          activeScenario: "B",
         },
         {
           id: 2, name: "OSL", asOf: "31 Dec 2025",
@@ -729,7 +742,7 @@
           lastPriceUpdate: 0, lastPriceError: "",
         },
       ];
-      const DATA_KEY = "bo-peer-comparison-v18";
+      const DATA_KEY = "bo-peer-comparison-v19";
       const COUNTRY_FLAGS = {
         TH: "\uD83C\uDDF9\uD83C\uDDED",
         HK: "\uD83C\uDDED\uD83C\uDDF0",
@@ -1029,6 +1042,22 @@
           if (k === "related") visible = !settings.hideRelated;
           else visible = !(settings.hiddenCols && settings.hiddenCols[k]);
           btn.classList.toggle("active", visible);
+        });
+        const mainBtn = document.getElementById("mainRelatedToggle");
+        if (mainBtn) {
+          const on = !settings.hideRelated;
+          mainBtn.classList.toggle("active", on);
+          mainBtn.textContent = on ? "Crypto-Related: ON" : "Crypto-Related: OFF";
+        }
+      }
+      const mainRelatedBtn = document.getElementById("mainRelatedToggle");
+      if (mainRelatedBtn) {
+        mainRelatedBtn.addEventListener("click", () => {
+          settings.hideRelated = !settings.hideRelated;
+          saveSettings();
+          renderTable();
+          renderCharts();
+          renderColTogglesState();
         });
       }
       function rowHtml(rawRow, boDer) {
@@ -1364,8 +1393,31 @@
       document.getElementById("refreshBtn").addEventListener("click", () => refreshAll());
 
       function renderScenarioToggle() {
-        // Scenario toggle UI removed; activeRow still resolves scenario A by default
+        const bo = primaryBO();
+        const toggle = document.getElementById("scenarioToggle");
+        if (!toggle) return;
+        if (!bo || !bo.scenarios) { toggle.style.display = "none"; return; }
+        toggle.style.display = "";
+        const active = bo.activeScenario || "A";
+        ["A", "B"].forEach((k) => {
+          const btn = document.getElementById("scenarioBtn" + k);
+          if (!btn) return;
+          const scen = bo.scenarios[k] || {};
+          btn.textContent = scen.label || k;
+          btn.classList.toggle("active", k === active);
+        });
       }
+      document.querySelectorAll(".scenario-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const bo = primaryBO();
+          if (!bo) return;
+          bo.activeScenario = btn.dataset.scenario;
+          save();
+          renderScenarioToggle();
+          renderTable();
+          renderCharts();
+        });
+      });
       document.getElementById("addRowBtn").addEventListener("click", () => {
         data.push({
           id: nextId++, name: "New Peer",
