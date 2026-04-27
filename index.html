@@ -88,6 +88,12 @@
       }
       .btn:hover { border-color: var(--brand); color: var(--brand); }
       .btn.primary { background: var(--brand); color: #07120c; border-color: var(--brand); }
+      .btn.icon-only { padding: 10px 12px; }
+      .btn.icon-only #refreshIcon { font-size: 18px; line-height: 1; }
+      .visually-hidden {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+      }
       .btn.primary:hover { background: #00e25d; color: #07120c; }
       .btn.ghost { background: transparent; }
       .btn.danger { color: var(--danger); }
@@ -449,6 +455,12 @@
       .col-toggle.related-toggle.active {
         background: #f0a830; color: #1a1408; border-color: #f0a830;
       }
+      .col-toggle.related-toggle:not(.active) {
+        border-color: #f0a830; color: #f0a830;
+      }
+      .col-toggle.related-toggle:not(.active):hover {
+        background: rgba(240, 168, 48, 0.12); color: #f0a830;
+      }
       .col-toggle-divider {
         width: 1px; align-self: stretch; background: var(--border); margin: 0 4px;
       }
@@ -533,9 +545,9 @@
             <button class="scenario-btn" data-scenario="A" id="scenarioBtnA">Target</button>
             <button class="scenario-btn active" data-scenario="B" id="scenarioBtnB">Current</button>
           </div>
-          <button class="btn ghost" id="refreshBtn">
+          <button class="btn ghost icon-only" id="refreshBtn" title="Refresh Prices" aria-label="Refresh Prices">
             <span id="refreshIcon">&#x21bb;</span>
-            <span id="refreshText">Refresh Prices</span>
+            <span id="refreshText" class="visually-hidden">Refresh Prices</span>
           </button>
           <button class="btn primary" id="adminBtn">Admin Edit</button>
         </div>
@@ -618,15 +630,15 @@
           id: 1, name: "Bitkub Online", asOf: "31 Dec 2025",
           description: "Thai licensed crypto exchange",
           country: "TH",
-          price: 485, shares: 45,
-          marketCapOverride: 22000,
+          price: 384.44, shares: 45,
+          marketCapOverride: 17300,
           revenue: 1617, netProfit: 308,
           isBO: true, category: "exchange", note: "Bitkub Online — manual",
           ticker: "", autoUpdate: false,
           lastPriceUpdate: 0, lastPriceError: "",
           scenarios: {
-            A: { label: "Target", price: 1200, shares: 45, revenue: 3000, netProfit: 800, marketCapOverride: 54000 },
-            B: { label: "Current", price: 485, shares: 45, revenue: 1617, netProfit: 308, marketCapOverride: 22000 },
+            A: { label: "Target", price: 488.89, shares: 45, revenue: 1617, netProfit: 308, marketCapOverride: 22000 },
+            B: { label: "Current", price: 384.44, shares: 45, revenue: 1617, netProfit: 308, marketCapOverride: 17300 },
           },
           activeScenario: "B",
         },
@@ -675,7 +687,7 @@
           lastPriceUpdate: 0, lastPriceError: "",
         },
         {
-          id: 6, name: "Indodax / Indokripto", asOf: "31 Dec 2025",
+          id: 6, name: "PT Indokripto Koin Semesta Tbk", asOf: "31 Dec 2025",
           description: "Indonesia's largest crypto exchange",
           country: "ID",
           price: 2.75, shares: 0,
@@ -742,7 +754,7 @@
           lastPriceUpdate: 0, lastPriceError: "",
         },
       ];
-      const DATA_KEY = "bo-peer-comparison-v19";
+      const DATA_KEY = "bo-peer-comparison-v20";
       const COUNTRY_FLAGS = {
         TH: "\uD83C\uDDF9\uD83C\uDDED",
         HK: "\uD83C\uDDED\uD83C\uDDF0",
