@@ -519,16 +519,10 @@
           BO Peer Comparison <span class="accent">Valuation</span>
         </h1>
         <div class="header-actions no-print">
-          <div class="scenario-toggle" id="scenarioToggle">
-            <span class="scenario-label">BO:</span>
-            <button class="scenario-btn active" data-scenario="A" id="scenarioBtnA">A</button>
-            <button class="scenario-btn" data-scenario="B" id="scenarioBtnB">B</button>
-          </div>
           <button class="btn ghost" id="refreshBtn">
             <span id="refreshIcon">&#x21bb;</span>
             <span id="refreshText">Refresh Prices</span>
           </button>
-          <button class="btn ghost" id="printBtn">Print / PDF</button>
           <button class="btn primary" id="adminBtn">Admin Edit</button>
         </div>
       </header>
@@ -1363,34 +1357,11 @@
       document.getElementById("closeDrawerBtn").addEventListener("click", closeDrawer);
       backdrop.addEventListener("click", closeDrawer);
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
-      document.getElementById("printBtn").addEventListener("click", () => window.print());
       document.getElementById("refreshBtn").addEventListener("click", () => refreshAll());
 
       function renderScenarioToggle() {
-        const bo = primaryBO();
-        const toggle = document.getElementById("scenarioToggle");
-        if (!bo || !bo.scenarios) { toggle.style.display = "none"; return; }
-        toggle.style.display = "";
-        const active = bo.activeScenario || "A";
-        ["A", "B"].forEach((k) => {
-          const btn = document.getElementById("scenarioBtn" + k);
-          if (!btn) return;
-          const scen = bo.scenarios[k] || {};
-          btn.textContent = scen.label || k;
-          btn.classList.toggle("active", k === active);
-        });
+        // Scenario toggle UI removed; activeRow still resolves scenario A by default
       }
-      document.querySelectorAll(".scenario-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const bo = primaryBO();
-          if (!bo) return;
-          bo.activeScenario = btn.dataset.scenario;
-          save();
-          renderScenarioToggle();
-          renderTable();
-          renderCharts();
-        });
-      });
       document.getElementById("addRowBtn").addEventListener("click", () => {
         data.push({
           id: nextId++, name: "New Peer",
