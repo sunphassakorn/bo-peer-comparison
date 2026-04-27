@@ -1,0 +1,1431 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BO Peer Comparison Valuation</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a3a2a'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='central' fill='%2300c853' font-family='sans-serif' font-weight='700' font-size='34'%3EBO%3C/text%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --brand-dark: #1a3a2a;
+        --brand-darker: #0f2619;
+        --brand: #00c853;
+        --brand-soft: rgba(0, 200, 83, 0.15);
+        --brand-softer: rgba(0, 200, 83, 0.06);
+        --bg: #07120c;
+        --card: #0f1f17;
+        --card-2: #132a1f;
+        --border: #1f3a2c;
+        --text: #e9f5ee;
+        --muted: #8aa79a;
+        --danger: #ff5470;
+        --warning: #ffb547;
+        --peer: #7a9b89;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        background: var(--bg); color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Inter", "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100%;
+      }
+      body {
+        background:
+          radial-gradient(1200px 600px at 10% -10%, rgba(0, 200, 83, 0.08), transparent 60%),
+          radial-gradient(900px 500px at 110% 10%, rgba(0, 200, 83, 0.05), transparent 60%),
+          var(--bg);
+        padding: 32px;
+      }
+      .app { max-width: 1280px; margin: 0 auto; }
+
+      header.top { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+      .brand-mark {
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+        background: linear-gradient(135deg, var(--brand-dark), var(--brand-darker));
+        border: 1px solid var(--border); border-radius: 12px;
+      }
+      .brand-logo {
+        width: 42px; height: 32px;
+        display: grid; place-items: center;
+      }
+      .brand-logo svg { width: 100%; height: 100%; display: block; }
+      .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+      .brand-text .t1 { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+      .brand-text .t2 { font-size: 11px; color: var(--danger); letter-spacing: 2px; font-weight: 700; }
+      h1.title { font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; flex: 1; min-width: 240px; }
+      h1.title .accent { color: var(--brand); }
+      .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .scenario-toggle {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--card-2); border: 1px solid var(--border);
+        border-radius: 10px; padding: 4px 6px 4px 10px;
+      }
+      .scenario-label {
+        font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+        color: var(--muted); font-weight: 700;
+      }
+      .scenario-btn {
+        background: transparent; border: 1px solid transparent; color: var(--muted);
+        padding: 6px 12px; border-radius: 7px; cursor: pointer;
+        font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+        transition: all 0.15s;
+      }
+      .scenario-btn:hover { color: var(--fg); }
+      .scenario-btn.active {
+        background: var(--brand); color: #0a1f14; border-color: var(--brand);
+      }
+      .btn {
+        appearance: none; border: 1px solid var(--border);
+        background: var(--card); color: var(--text);
+        padding: 10px 16px; border-radius: 10px;
+        font-size: 14px; font-weight: 600; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+        transition: all 0.15s ease; font-family: inherit;
+      }
+      .btn:hover { border-color: var(--brand); color: var(--brand); }
+      .btn.primary { background: var(--brand); color: #07120c; border-color: var(--brand); }
+      .btn.primary:hover { background: #00e25d; color: #07120c; }
+      .btn.ghost { background: transparent; }
+      .btn.danger { color: var(--danger); }
+
+      .summary {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 16px; margin-bottom: 28px;
+      }
+      .s-card {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 16px; padding: 20px 22px; position: relative; overflow: hidden;
+      }
+      .s-card.highlight {
+        border-color: var(--brand);
+        background: linear-gradient(135deg, var(--brand-soft), var(--card));
+      }
+      .s-card .label {
+        font-size: 12px; color: var(--muted);
+        letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;
+      }
+      .s-card .value {
+        font-size: 34px; font-weight: 700; letter-spacing: -0.5px; color: var(--brand);
+      }
+      .s-card .sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
+      .s-card.mono .value { color: var(--text); }
+      .s-card.neg .value { color: var(--danger); }
+
+      section.block {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 16px; padding: 22px; margin-bottom: 24px;
+      }
+      section.block h2 {
+        font-size: 15px; letter-spacing: 2px; text-transform: uppercase;
+        color: var(--muted); margin-bottom: 16px; font-weight: 600;
+        display: flex; align-items: center; gap: 10px;
+      }
+      section.block h2::before {
+        content: ""; display: inline-block;
+        width: 4px; height: 18px; background: var(--brand); border-radius: 2px;
+      }
+
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 960px; }
+      thead th {
+        background: var(--brand-dark); color: var(--text);
+        font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+        padding: 12px 14px; text-align: right;
+        border-bottom: 2px solid var(--brand); font-weight: 700;
+      }
+      thead th:first-child { text-align: left; border-top-left-radius: 10px; }
+      thead th:last-child { border-top-right-radius: 10px; }
+      thead th .unit {
+        display: block; font-size: 10px; color: var(--muted);
+        font-weight: 500; letter-spacing: 1px; margin-top: 2px;
+      }
+      tbody td {
+        padding: 14px; border-bottom: 1px solid var(--border);
+        font-size: 14px; text-align: right; font-variant-numeric: tabular-nums;
+      }
+      tbody td:first-child { text-align: left; font-weight: 600; }
+      tbody tr.bo, tbody tr.bo td { background: var(--brand-softer); }
+      tbody tr.bo td:first-child { border-left: 3px solid var(--brand); }
+      tbody tr.bo .company-name { color: var(--brand); }
+      tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
+      tbody tr.bo:hover td { background: rgba(0, 200, 83, 0.1); }
+      tbody tr.related, tbody tr.related td {
+        background: rgba(255, 181, 71, 0.04);
+      }
+      tbody tr.related td:first-child {
+        border-left: 3px solid var(--warning);
+      }
+      tbody tr.related:hover td {
+        background: rgba(255, 181, 71, 0.08);
+      }
+      tbody tr.section-header td {
+        background: var(--brand-darker);
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-weight: 700;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      tbody tr.section-header td:first-child { border-left: none; }
+      tbody tr.section-header.related td {
+        color: var(--warning);
+      }
+      .company-line {
+        display: inline-flex; align-items: center; flex-wrap: wrap;
+        gap: 6px; line-height: 1.4;
+      }
+      .category-chip {
+        display: inline-block; padding: 2px 8px;
+        font-size: 10px; font-weight: 700;
+        border-radius: 999px; letter-spacing: 0.5px;
+        vertical-align: middle;
+      }
+      .category-chip.related {
+        background: rgba(255, 181, 71, 0.15);
+        color: var(--warning);
+        border: 1px solid rgba(255, 181, 71, 0.3);
+      }
+      .bar-fill.related {
+        background: linear-gradient(90deg, var(--warning), #d99540);
+      }
+      .as-of {
+        display: block; font-size: 11px; color: var(--muted);
+        font-weight: 400; margin-top: 2px;
+      }
+      .desc {
+        display: block; font-size: 12px; color: var(--text);
+        font-weight: 400; margin-top: 3px; opacity: 0.75;
+        font-style: italic;
+      }
+      td.expensive { color: var(--warning); }
+      td.cheap { color: var(--brand); font-weight: 700; }
+      td.loss { color: var(--danger); }
+      td.na { color: var(--muted); font-style: italic; }
+      .badge {
+        display: inline-block; padding: 2px 8px;
+        background: var(--brand); color: #07120c;
+        font-size: 10px; font-weight: 800; border-radius: 999px;
+        letter-spacing: 0.5px; margin-left: 6px; vertical-align: middle;
+      }
+
+      .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+      @media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
+      .chart-card {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 16px; padding: 22px;
+      }
+      .chart-card h3 {
+        font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase;
+        color: var(--muted); margin-bottom: 4px; font-weight: 600;
+      }
+      .chart-card .chart-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+      .bar-row {
+        display: grid; grid-template-columns: 170px 1fr 80px;
+        gap: 12px; align-items: center; margin-bottom: 12px;
+      }
+      .bar-row .bar-label {
+        font-size: 13px; font-weight: 600; color: var(--text);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .bar-row .bar-label .sub {
+        font-size: 10px; color: var(--muted); font-weight: 400; display: block;
+      }
+      .bar-track {
+        position: relative; height: 26px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px; overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--peer), #5a8270);
+        border-radius: 6px;
+        transition: width 0.6s cubic-bezier(0.2, 0.9, 0.25, 1);
+      }
+      .bar-fill.bo {
+        background: linear-gradient(90deg, var(--brand), #00a648);
+        box-shadow: 0 0 16px rgba(0, 200, 83, 0.4);
+      }
+      .bar-fill.na {
+        background: repeating-linear-gradient(
+          45deg,
+          rgba(138, 167, 154, 0.2), rgba(138, 167, 154, 0.2) 6px,
+          rgba(138, 167, 154, 0.05) 6px, rgba(138, 167, 154, 0.05) 12px
+        );
+      }
+      .bar-value { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; font-size: 14px; }
+      .bar-value.bo { color: var(--brand); }
+      .bar-value.na { color: var(--muted); font-style: italic; font-weight: 500; font-size: 12px; }
+
+      .drawer-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.25s ease; z-index: 50;
+      }
+      .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+      .drawer {
+        position: fixed; top: 0; right: 0; height: 100%;
+        width: min(560px, 100%);
+        background: var(--card); border-left: 1px solid var(--border);
+        box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.25, 1);
+        z-index: 51; display: flex; flex-direction: column;
+      }
+      .drawer.open { transform: translateX(0); }
+      .drawer-head {
+        padding: 20px 24px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .drawer-head h2 { font-size: 16px; color: var(--text); font-weight: 700; }
+      .drawer-body { flex: 1; overflow-y: auto; padding: 16px 24px 24px; }
+      .drawer-foot {
+        padding: 16px 24px; border-top: 1px solid var(--border);
+        display: flex; gap: 10px; flex-wrap: wrap;
+      }
+      .edit-card {
+        background: var(--card-2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px; margin-bottom: 14px;
+      }
+      .edit-card.bo {
+        border-color: var(--brand);
+        background: linear-gradient(135deg, var(--brand-softer), var(--card-2));
+      }
+      .edit-card.readonly { padding: 12px 14px; }
+      .edit-card.readonly .edit-top { margin-bottom: 6px; }
+      .readonly-note {
+        font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.5;
+      }
+      .scenario-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.15);
+        border-radius: 10px;
+      }
+      .scenario-block {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 8px; padding: 12px;
+      }
+      .scenario-block.active {
+        border-color: var(--brand);
+        box-shadow: 0 0 0 1px var(--brand) inset;
+      }
+      .scenario-head {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+      }
+      .scenario-key {
+        font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+        color: var(--muted); font-weight: 700;
+      }
+      .scenario-label-input {
+        flex: 1; background: transparent; border: 1px solid var(--border);
+        color: var(--fg); padding: 4px 8px; border-radius: 6px; font-size: 13px;
+        font-weight: 700;
+      }
+      .scenario-badge {
+        background: var(--brand); color: #0a1f14; padding: 2px 8px;
+        border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      }
+      .edit-card .edit-top {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .edit-card .edit-top .name {
+        font-size: 14px; font-weight: 700;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .edit-card .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .field { display: flex; flex-direction: column; gap: 4px; }
+      .field.full { grid-column: 1 / -1; }
+      .field label {
+        font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+      }
+      .field input {
+        background: var(--bg); border: 1px solid var(--border);
+        color: var(--text); padding: 8px 10px; border-radius: 8px;
+        font-size: 13px; font-family: inherit; font-variant-numeric: tabular-nums;
+      }
+      .field input:focus { outline: none; border-color: var(--brand); }
+      .derived {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);
+      }
+      .derived-chip {
+        background: var(--bg); border-radius: 8px; padding: 8px 10px;
+        font-size: 11px; color: var(--muted); text-align: center;
+      }
+      .derived-chip strong {
+        display: block; color: var(--text); font-size: 14px;
+        font-weight: 700; margin-top: 2px;
+      }
+      .toggle-row {
+        display: flex; align-items: center; gap: 8px;
+        margin-top: 10px; color: var(--muted); font-size: 12px;
+      }
+      .toggle-row input { accent-color: var(--brand); }
+      .icon-btn {
+        background: transparent; border: 1px solid var(--border);
+        color: var(--muted); border-radius: 6px;
+        width: 28px; height: 28px; cursor: pointer;
+        font-size: 14px; display: grid; place-items: center;
+      }
+      .icon-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+      .status-bar {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 22px; font-size: 12px; color: var(--muted);
+        min-height: 20px; flex-wrap: wrap;
+      }
+      .status-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+      .status-bar.ok .dot { background: var(--brand); box-shadow: 0 0 8px var(--brand); }
+      .status-bar.err .dot { background: var(--danger); }
+      .status-bar.busy .dot { background: var(--warning); animation: pulse 1s infinite; }
+      @keyframes pulse { 50% { opacity: 0.4; } }
+      .spinner {
+        width: 14px; height: 14px; border-radius: 50%;
+        border: 2px solid currentColor; border-top-color: transparent;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+      .as-of.fresh { color: var(--brand); }
+      .as-of.stale { color: var(--warning); }
+      .badge.auto {
+        background: transparent; color: var(--brand);
+        border: 1px solid var(--brand);
+        display: inline-flex; align-items: center; gap: 6px;
+      }
+      .badge.auto::before {
+        content: ""; width: 7px; height: 7px; border-radius: 50%;
+        background: var(--brand); display: inline-block;
+        box-shadow: 0 0 8px var(--brand);
+        animation: livePulse 1.4s ease-in-out infinite;
+      }
+      @keyframes livePulse {
+        0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px var(--brand); }
+        50% { opacity: 0.35; transform: scale(0.7); box-shadow: 0 0 2px var(--brand); }
+      }
+      .flag {
+        display: inline-block; margin-right: 8px;
+        font-size: 16px; vertical-align: middle; line-height: 1;
+      }
+      /* Hide individual columns when data-hide attribute lists their key */
+      table[data-hide~="price"] th.col-price, table[data-hide~="price"] td.col-price,
+      table[data-hide~="shares"] th.col-shares, table[data-hide~="shares"] td.col-shares,
+      table[data-hide~="marketCap"] th.col-marketCap, table[data-hide~="marketCap"] td.col-marketCap,
+      table[data-hide~="revenue"] th.col-revenue, table[data-hide~="revenue"] td.col-revenue,
+      table[data-hide~="netProfit"] th.col-netProfit, table[data-hide~="netProfit"] td.col-netProfit,
+      table[data-hide~="pe"] th.col-pe, table[data-hide~="pe"] td.col-pe,
+      table[data-hide~="ps"] th.col-ps, table[data-hide~="ps"] td.col-ps { display: none; }
+
+      .col-toggles {
+        display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        margin-bottom: 14px; padding: 10px 12px;
+        background: var(--card-2); border: 1px solid var(--border); border-radius: 10px;
+      }
+      .col-toggles .toggle-label {
+        font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+        color: var(--muted); font-weight: 700; margin-right: 4px;
+      }
+      .col-toggle {
+        background: transparent; border: 1px solid var(--border); color: var(--muted);
+        padding: 5px 11px; border-radius: 6px; cursor: pointer;
+        font-size: 12px; font-weight: 600; transition: all 0.15s;
+      }
+      .col-toggle:hover { color: var(--fg); border-color: var(--muted); }
+      .col-toggle.active {
+        background: var(--brand); color: #0a1f14; border-color: var(--brand);
+      }
+      .col-toggle.related-toggle.active {
+        background: #f0a830; color: #1a1408; border-color: #f0a830;
+      }
+      .col-toggle-divider {
+        width: 1px; align-self: stretch; background: var(--border); margin: 0 4px;
+      }
+      /* Clear link to the editable Google Sheet */
+      .sheet-edit-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        color: var(--brand); text-decoration: none;
+        font-weight: 700; padding: 4px 10px;
+        border: 1px solid var(--brand); border-radius: 6px;
+        font-size: 11px; letter-spacing: 0.5px;
+        transition: all 0.15s ease; margin-top: 8px;
+      }
+      .sheet-edit-link:hover {
+        background: var(--brand); color: #07120c;
+      }
+      .last-fetched {
+        font-size: 10px; color: var(--muted);
+        margin-top: 8px; display: flex; align-items: center; gap: 6px;
+      }
+      .last-fetched.err { color: var(--danger); }
+      .last-fetched.ok { color: var(--brand); }
+      .field select {
+        background: var(--bg); border: 1px solid var(--border);
+        color: var(--text); padding: 8px 10px; border-radius: 8px;
+        font-size: 13px; font-family: inherit;
+      }
+      .field select:focus { outline: none; border-color: var(--brand); }
+
+      footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+
+      @media print {
+        body { background: white; color: black; padding: 0; }
+        .no-print { display: none !important; }
+        section.block, .s-card, .chart-card {
+          background: white; color: black; border-color: #ccc;
+          box-shadow: none; page-break-inside: avoid;
+        }
+        .s-card .value { color: #00a040; }
+        thead th {
+          background: #1a3a2a !important; color: white !important;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        tbody tr.bo td {
+          background: #e6f7ec !important;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        .bar-fill.bo {
+          background: #00a040 !important;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        .bar-fill {
+          background: #7a9b89 !important;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        h1.title .accent { color: #00a040; }
+        section.block h2, .chart-card h3 { color: #555; }
+        .bar-label, .bar-value, tbody td { color: black !important; }
+        .as-of, .sub, .s-card .label, .s-card .sub { color: #666 !important; }
+        @page { size: A4 landscape; margin: 14mm; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="brand-mark">
+          <div class="brand-text">
+            <span class="t2">HIGHLY CONFIDENTIAL</span>
+          </div>
+        </div>
+        <h1 class="title">
+          BO Peer Comparison <span class="accent">Valuation</span>
+        </h1>
+        <div class="header-actions no-print">
+          <div class="scenario-toggle" id="scenarioToggle">
+            <span class="scenario-label">BO:</span>
+            <button class="scenario-btn active" data-scenario="A" id="scenarioBtnA">A</button>
+            <button class="scenario-btn" data-scenario="B" id="scenarioBtnB">B</button>
+          </div>
+          <button class="btn ghost" id="refreshBtn">
+            <span id="refreshIcon">&#x21bb;</span>
+            <span id="refreshText">Refresh Prices</span>
+          </button>
+          <button class="btn ghost" id="printBtn">Print / PDF</button>
+          <button class="btn primary" id="adminBtn">Admin Edit</button>
+        </div>
+      </header>
+
+      <div class="status-bar no-print" id="statusBar">
+        <span class="dot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+
+      <section class="block">
+        <h2>Comparison Table</h2>
+        <div class="table-wrap">
+          <table id="compTable">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="col-price">Price <span class="unit">THB / Share · live</span></th>
+                <th class="col-shares"># Shares <span class="unit">Millions</span></th>
+                <th class="col-marketCap">Market Cap <span class="unit">Mil THB · live</span></th>
+                <th class="col-revenue">Revenue <span class="unit" id="revFyHeader">Mil THB</span></th>
+                <th class="col-netProfit">Net Profit <span class="unit" id="npFyHeader">Mil THB</span></th>
+                <th class="col-pe">P / E <span class="unit">x</span></th>
+                <th class="col-ps">P / S <span class="unit">x</span></th>
+              </tr>
+            </thead>
+            <tbody id="compTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Valuation Multiples — Visual</h2>
+        <div class="charts">
+          <div class="chart-card">
+            <h3>P / E Ratio</h3>
+            <div class="chart-sub">Lower = cheaper. BO highlighted in green. Unprofitable companies shown as n/a.</div>
+            <div id="peChart"></div>
+          </div>
+          <div class="chart-card">
+            <h3>P / S Ratio</h3>
+            <div class="chart-sub">Lower = cheaper. BO highlighted in green.</div>
+            <div id="psChart"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Peer data from TradingView (latest FY). USD converted at 31.5 THB, HKD at 4.05 THB.
+        All values editable via <strong>Admin Edit</strong>. Market Cap, P/E and P/S
+        auto-calculated from Price, Shares, Revenue &amp; Net Profit.
+      </footer>
+    </div>
+
+    <!-- Admin Drawer -->
+    <div class="drawer-backdrop no-print" id="drawerBackdrop"></div>
+    <aside class="drawer no-print" id="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <h2>Admin &middot; Edit Data</h2>
+        <button class="btn ghost" id="closeDrawerBtn">Close</button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+      <div class="drawer-foot">
+        <button class="btn primary" id="addRowBtn">+ Add Company</button>
+        <button class="btn ghost" id="resetBtn">Reset to Default</button>
+      </div>
+    </aside>
+
+    <script>
+      /* ============ DATA ============ */
+      // Prices auto-fetched from a Google Sheet CSV published to web. The sheet
+      // must have columns: "Ticker" and "Price THB". Use GOOGLEFINANCE() inside
+      // the sheet to pull live prices + do FX conversion. See setup guide.
+      // Tickers here must match column A of the sheet (e.g. "HKG:0863", "NASDAQ:COIN").
+      const DEFAULT_DATA = [
+        {
+          id: 1, name: "Bitkub Online", asOf: "31 Dec 2025",
+          description: "Thai licensed crypto exchange",
+          country: "TH",
+          price: 485, shares: 45,
+          marketCapOverride: 22000,
+          revenue: 1617, netProfit: 308,
+          isBO: true, category: "exchange", note: "Bitkub Online — manual",
+          ticker: "", autoUpdate: false,
+          lastPriceUpdate: 0, lastPriceError: "",
+          scenarios: {
+            A: { label: "Current", price: 485, shares: 45, revenue: 1617, netProfit: 308, marketCapOverride: 22000 },
+            B: { label: "Target", price: 1200, shares: 45, revenue: 3000, netProfit: 800, marketCapOverride: 54000 },
+          },
+          activeScenario: "A",
+        },
+        {
+          id: 2, name: "OSL", asOf: "31 Dec 2025",
+          description: "HK-licensed digital asset platform",
+          country: "HK",
+          price: 54.03, shares: 794.6,
+          revenue: 1980, netProfit: -1566,
+          isBO: false, category: "exchange",
+          note: "FY2025 audited 10-K: Rev 488.8M HKD, NL -386.8M HKD × 4.05",
+          ticker: "HKG:0863", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 3, name: "HashKey", asOf: "31 Dec 2025",
+          description: "HK crypto exchange & custody",
+          country: "HK",
+          price: 18.99, shares: 2765.2,
+          revenue: 2929, netProfit: -4402,
+          isBO: false, category: "exchange",
+          note: "FY2025 audited 10-K: Rev 723.1M HKD, NL -1,086.9M HKD × 4.05",
+          ticker: "HKG:3887", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 4, name: "Coinbase", asOf: "31 Dec 2025",
+          description: "Largest US crypto exchange",
+          country: "US",
+          price: 6017, shares: 260.1,
+          revenue: 226211, netProfit: 39699,
+          isBO: false, category: "exchange",
+          note: "FY2025 audited 10-K: Rev $7,181.3M, NI $1,260.3M × 31.5",
+          ticker: "NASDAQ:COIN", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 5, name: "Gemini", asOf: "31 Dec 2025",
+          description: "Winklevoss US crypto exchange",
+          country: "US",
+          price: 151.83, shares: 120.0,
+          revenue: 5657, netProfit: -18359,
+          isBO: false, category: "exchange",
+          note: "FY2025 audited 10-K: Rev $179.6M, NL -$582.8M × 31.5. Shares 120M post-IPO.",
+          ticker: "NASDAQ:GEMI", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 6, name: "Indodax / Indokripto", asOf: "31 Dec 2025",
+          description: "Indonesia's largest crypto exchange",
+          country: "ID",
+          price: 2.75, shares: 0,
+          marketCapOverride: 41291,
+          revenue: 584, netProfit: 97,
+          isBO: false, category: "exchange",
+          note: "Private — not publicly listed. IDR source, FX ~0.00197.",
+          ticker: "IDX:COIN", autoUpdate: false,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 7, name: "Galaxy Digital", asOf: "31 Dec 2025",
+          description: "Crypto financial services & asset manager",
+          country: "US",
+          price: 1081, shares: 159.2,
+          revenue: 37164, netProfit: -7601,
+          isBO: false, category: "related",
+          note: "FY2025 audited 10-K: Net revenue $1,179.8M (Rev + Gains − Transaction exp), NL -$241.3M × 31.5. Gross revenue $60,406.7M excluded.",
+          ticker: "NASDAQ:GLXY", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 8, name: "BitGo", asOf: "31 Dec 2025",
+          description: "Crypto custody & prime services",
+          country: "US",
+          price: 1072, shares: 115.5,
+          revenue: 508791, netProfit: -466,
+          isBO: false, category: "related",
+          note: "FY2025 audited 10-K: Rev $16,152.1M (gross — trading), NL -$14.8M × 31.5. Shares 115.5M.",
+          ticker: "NYSE:BTGO", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 9, name: "Robinhood", asOf: "31 Dec 2025",
+          description: "US brokerage with crypto trading",
+          country: "US",
+          price: 2859, shares: 888.5,
+          revenue: 140900, netProfit: 59315,
+          isBO: false, category: "related",
+          note: "FY2025 audited 10-K: Rev $4,473M, NI $1,883M × 31.5",
+          ticker: "NASDAQ:HOOD", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 10, name: "Circle", asOf: "31 Dec 2025",
+          description: "USDC stablecoin issuer",
+          country: "US",
+          price: 3385, shares: 158.7,
+          revenue: 86518, netProfit: -2190,
+          isBO: false, category: "related",
+          note: "FY2025 audited 10-K: Rev $2,746.6M, NL -$69.5M × 31.5",
+          ticker: "NYSE:CRCL", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+        {
+          id: 11, name: "Interactive Brokers", asOf: "31 Dec 2025",
+          description: "Global brokerage, crypto-enabled",
+          country: "US",
+          price: 2348, shares: 445.4,
+          revenue: 195458, netProfit: 30996,
+          isBO: false, category: "related",
+          note: "FY2025 audited 10-K: Rev $6,205M, NI $984M × 31.5",
+          ticker: "NASDAQ:IBKR", autoUpdate: true,
+          lastPriceUpdate: 0, lastPriceError: "",
+        },
+      ];
+      const DATA_KEY = "bo-peer-comparison-v18";
+      const COUNTRY_FLAGS = {
+        TH: "\uD83C\uDDF9\uD83C\uDDED",
+        HK: "\uD83C\uDDED\uD83C\uDDF0",
+        US: "\uD83C\uDDFA\uD83C\uDDF8",
+        ID: "\uD83C\uDDEE\uD83C\uDDE9",
+        SG: "\uD83C\uDDF8\uD83C\uDDEC",
+        JP: "\uD83C\uDDEF\uD83C\uDDF5",
+        KR: "\uD83C\uDDF0\uD83C\uDDF7",
+        GB: "\uD83C\uDDEC\uD83C\uDDE7",
+        DE: "\uD83C\uDDE9\uD83C\uDDEA",
+        CN: "\uD83C\uDDE8\uD83C\uDDF3",
+      };
+      const SETTINGS_KEY = "bo-peer-comparison-settings-v2";
+
+      let data = load();
+      let settings = loadSettings();
+      let nextId = Math.max(0, ...data.map((r) => r.id || 0)) + 1;
+      let refreshing = false;
+
+      function load() {
+        try {
+          const raw = localStorage.getItem(DATA_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length) {
+              return parsed.map((r) => ({
+                ticker: "", autoUpdate: false,
+                lastPriceUpdate: 0, lastPriceError: "",
+                ...r,
+              }));
+            }
+          }
+        } catch (e) {}
+        return structuredClone(DEFAULT_DATA);
+      }
+      function save() {
+        try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch (e) {}
+      }
+      function loadSettings() {
+        const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-OB_BVAQzcQAqJX53IiSYn3GnQAzMlPMs813sJ2CxLqpmVh4bNsWdXYrEavYNE4KPKfE-jw5OdDL9/pub?output=csv";
+        const defaults = {
+          googleSheetCsvUrl: DEFAULT_SHEET_URL,
+          hideSharesCol: false,
+          hiddenCols: { price: false, shares: false, marketCap: false, revenue: false, netProfit: false, pe: false, ps: false },
+          hideRelated: false,
+        };
+        let merged;
+        try { merged = { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; }
+        catch { merged = defaults; }
+        merged.hiddenCols = { ...defaults.hiddenCols, ...(merged.hiddenCols || {}) };
+        // Migrate old hideSharesCol → hiddenCols.shares
+        if (merged.hideSharesCol) { merged.hiddenCols.shares = true; merged.hideSharesCol = false; }
+        return merged;
+      }
+      function saveSettings() {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+      }
+
+      /* ============ LIVE PRICE FETCH ============ */
+      function parseCsv(text) {
+        const rows = [];
+        let row = [], field = "", inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (inQuotes) {
+            if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+            else if (c === '"') inQuotes = false;
+            else field += c;
+          } else {
+            if (c === '"') inQuotes = true;
+            else if (c === ',') { row.push(field); field = ""; }
+            else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
+            else if (c === '\r') { /* skip */ }
+            else field += c;
+          }
+        }
+        if (field.length || row.length) { row.push(field); rows.push(row); }
+        return rows.filter((r) => r.length > 1 || (r.length === 1 && r[0].trim()));
+      }
+
+      async function refreshAll() {
+        const url = (settings.googleSheetCsvUrl || "").trim();
+        if (!url) {
+          setStatus("Paste your Google Sheet CSV URL in Admin Edit → Data Source", "err");
+          return;
+        }
+        const targets = data.filter((r) => !r.isBO && r.autoUpdate && r.ticker);
+        if (!targets.length) { setStatus("No peers set to auto-update", "err"); return; }
+        refreshing = true;
+        toggleRefreshButton(true);
+        setStatus("Fetching live prices from Google Sheet…", "busy");
+        try {
+          const res = await fetch(url, { cache: "no-store", redirect: "follow" });
+          if (!res.ok) throw new Error(`HTTP ${res.status} — is the sheet published to web as CSV?`);
+          const text = await res.text();
+          const snip = text.trim().slice(0, 200);
+          if (/^<!DOCTYPE|^<html|^<HTML/i.test(snip)) {
+            throw new Error("Got HTML instead of CSV — sheet isn't Published to web yet. File → Share → Publish to web → CSV → Publish.");
+          }
+          const rows = parseCsv(text.replace(/^\uFEFF/, ""));
+          if (rows.length < 2) throw new Error("Sheet appears empty");
+          const header = rows[0].map((h) => (h || "").trim().toLowerCase());
+          const tickerCol = header.indexOf("ticker");
+          const priceCol = header.findIndex((h) => /price.*thb/.test(h));
+          if (tickerCol < 0 || priceCol < 0) {
+            throw new Error(`Need "Ticker" & "Price THB" cols. Found: [${header.join(", ")}]`);
+          }
+          const prices = {};
+          for (let i = 1; i < rows.length; i++) {
+            const t = (rows[i][tickerCol] || "").trim();
+            const p = parseFloat((rows[i][priceCol] || "").replace(/[,\s]/g, ""));
+            if (t && isFinite(p) && p > 0) prices[t] = p;
+          }
+          let ok = 0, fail = 0, firstErr = "";
+          for (const row of targets) {
+            if (prices[row.ticker]) {
+              row.price = prices[row.ticker];
+              row.lastPriceUpdate = Date.now();
+              row.lastPriceError = "";
+              ok++;
+            } else {
+              fail++;
+              row.lastPriceError = `"${row.ticker}" not found in sheet`;
+              if (!firstErr) firstErr = row.name + ": " + row.lastPriceError;
+            }
+          }
+          save();
+          renderAll();
+          if (fail === 0) setStatus(`Prices updated · ${new Date().toLocaleTimeString()}`, "ok");
+          else setStatus(`${ok}/${targets.length} updated · ${firstErr}`, "err");
+        } catch (err) {
+          setStatus(`Fetch failed: ${err.message || err}`, "err");
+        }
+        refreshing = false;
+        toggleRefreshButton(false);
+      }
+      function toggleRefreshButton(busy) {
+        const btn = document.getElementById("refreshBtn");
+        if (!btn) return;
+        btn.disabled = busy;
+        const icon = document.getElementById("refreshIcon");
+        const text = document.getElementById("refreshText");
+        if (busy) {
+          if (icon) icon.outerHTML = '<span id="refreshIcon" class="spinner"></span>';
+          if (text) text.textContent = "Refreshing…";
+        } else {
+          const i = document.getElementById("refreshIcon");
+          if (i) i.outerHTML = '<span id="refreshIcon">\u21bb</span>';
+          if (text) text.textContent = "Refresh Prices";
+        }
+      }
+      function relativeTime(ts) {
+        if (!ts) return "never";
+        const diff = Date.now() - ts;
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return "just now";
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        return `${Math.floor(hrs / 24)}d ago`;
+      }
+      function setStatus(text, kind = "ok") {
+        const bar = document.getElementById("statusBar");
+        const t = document.getElementById("statusText");
+        if (!bar || !t) return;
+        t.textContent = text;
+        bar.className = "status-bar no-print " + kind;
+      }
+
+      /* ============ CALC ============ */
+      function activeRow(r) {
+        if (!r || !r.isBO || !r.scenarios) return r;
+        const scen = r.scenarios[r.activeScenario || "A"];
+        if (!scen) return r;
+        return { ...r, ...scen };
+      }
+      function derive(row) {
+        const r = activeRow(row);
+        const computedMC = (r.price || 0) * (r.shares || 0);
+        const marketCap = r.marketCapOverride && r.marketCapOverride > 0
+          ? r.marketCapOverride
+          : computedMC;
+        const pe = r.netProfit > 0 && marketCap > 0 ? marketCap / r.netProfit : null;
+        const ps = r.revenue > 0 && marketCap > 0 ? marketCap / r.revenue : null;
+        return { marketCap, pe, ps, isOverride: marketCap !== computedMC };
+      }
+      const primaryBO = () => data.find((r) => r.isBO) || null;
+      const peerRows = () => data.filter((r) => !r.isBO);
+      function average(nums) {
+        const v = nums.filter((n) => typeof n === "number" && isFinite(n));
+        return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+      }
+
+      /* ============ FORMAT ============ */
+      const fmtInt = (n) =>
+        n === null || n === undefined || !isFinite(n)
+          ? "—" : Math.round(n).toLocaleString("en-US");
+      const fmtNum = (n, d = 1) =>
+        n === null || n === undefined || !isFinite(n)
+          ? "—"
+          : n.toLocaleString("en-US", {
+              minimumFractionDigits: d, maximumFractionDigits: d,
+            });
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+
+      /* ============ RENDER ============ */
+      function renderSummary() {
+        const bo = primaryBO();
+        const peers = peerRows();
+        const peerPE = average(peers.map((p) => derive(p).pe));
+        const peerPS = average(peers.map((p) => derive(p).ps));
+        const boDer = bo ? derive(bo) : null;
+        const peDiscount = bo && boDer && boDer.pe && peerPE ? ((peerPE - boDer.pe) / peerPE) * 100 : null;
+        const psDiscount = bo && boDer && boDer.ps && peerPS ? ((peerPS - boDer.ps) / peerPS) * 100 : null;
+
+        const peerCountPE = peers.filter((p) => derive(p).pe !== null).length;
+        const peerCountPS = peers.filter((p) => derive(p).ps !== null).length;
+
+        const peKind = peDiscount === null ? "mono" : peDiscount >= 0 ? "highlight" : "neg";
+        const psKind = psDiscount === null ? "mono" : psDiscount >= 0 ? "highlight" : "neg";
+        const peVerb = peDiscount === null ? "" : peDiscount >= 0 ? "Discount" : "Premium";
+        const psVerb = psDiscount === null ? "" : psDiscount >= 0 ? "Discount" : "Premium";
+
+        document.getElementById("summarySection").innerHTML = `
+          <div class="s-card ${peKind}">
+            <div class="label">P / E ${peVerb || "vs Peers"}</div>
+            <div class="value">${peDiscount === null ? "—" : Math.abs(peDiscount).toFixed(1) + "%"}</div>
+            <div class="sub">
+              BO P/E ${fmtNum(boDer && boDer.pe)}x vs peer avg ${fmtNum(peerPE)}x
+              ${peerCountPE ? "· " + peerCountPE + " profitable peer" + (peerCountPE > 1 ? "s" : "") : "· no profitable peers"}
+            </div>
+          </div>
+          <div class="s-card ${psKind}">
+            <div class="label">P / S ${psVerb || "vs Peers"}</div>
+            <div class="value">${psDiscount === null ? "—" : Math.abs(psDiscount).toFixed(1) + "%"}</div>
+            <div class="sub">
+              BO P/S ${fmtNum(boDer && boDer.ps)}x vs peer avg ${fmtNum(peerPS)}x
+              · ${peerCountPS} peer${peerCountPS > 1 ? "s" : ""}
+            </div>
+          </div>
+          <div class="s-card mono">
+            <div class="label">Peer Set</div>
+            <div class="value">${peers.length}</div>
+            <div class="sub">${peers.length ? peers.map((p) => escapeHtml(p.name.split(" ")[0])).join(" · ") : "Add peers in Admin"}</div>
+          </div>
+          <div class="s-card mono">
+            <div class="label">BO Market Cap</div>
+            <div class="value">${fmtInt(boDer && boDer.marketCap)}</div>
+            <div class="sub">Mil THB</div>
+          </div>
+        `;
+      }
+
+      const COL_KEYS = ["price", "shares", "marketCap", "revenue", "netProfit", "pe", "ps"];
+      function applyColumnHiding() {
+        const table = document.getElementById("compTable");
+        if (!table) return 0;
+        const hidden = COL_KEYS.filter((k) => settings.hiddenCols && settings.hiddenCols[k]);
+        table.setAttribute("data-hide", hidden.join(" "));
+        return COL_KEYS.length - hidden.length + 1; // +1 for company column
+      }
+      function renderTable() {
+        const bo = primaryBO();
+        const boDer = bo ? derive(bo) : null;
+        const colspan = applyColumnHiding();
+        const tb = document.getElementById("compTableBody");
+        const visible = data.filter((r) => !r.hidden && !(settings.hideRelated && r.category === "related"));
+        // Determine a shared FY label to show in column headers
+        const fyValues = [...new Set(visible.filter((r) => r.asOf).map((r) => r.asOf))];
+        const fyLabel = fyValues.length === 1
+          ? `Mil THB · FY ${fyValues[0]}`
+          : "Mil THB · latest FY (see rows)";
+        const revHead = document.getElementById("revFyHeader");
+        const npHead = document.getElementById("npFyHeader");
+        if (revHead) revHead.textContent = fyLabel;
+        if (npHead) npHead.textContent = fyLabel;
+        const exchanges = visible.filter((r) => (r.category || "exchange") === "exchange");
+        const related = visible.filter((r) => r.category === "related");
+        const exchangeHeader = exchanges.length
+          ? `<tr class="section-header"><td colspan="${colspan}">Crypto Exchanges</td></tr>`
+          : "";
+        const relatedHeader = related.length
+          ? `<tr class="section-header related"><td colspan="${colspan}">Crypto-Related Businesses</td></tr>`
+          : "";
+        tb.innerHTML = exchangeHeader + exchanges.map((r) => rowHtml(r, boDer)).join("")
+          + relatedHeader + related.map((r) => rowHtml(r, boDer)).join("");
+        renderColTogglesState();
+      }
+      function renderColTogglesState() {
+        document.querySelectorAll("#colToggles .col-toggle").forEach((btn) => {
+          const k = btn.dataset.col;
+          let visible;
+          if (k === "related") visible = !settings.hideRelated;
+          else visible = !(settings.hiddenCols && settings.hiddenCols[k]);
+          btn.classList.toggle("active", visible);
+        });
+      }
+      function rowHtml(rawRow, boDer) {
+        const r = activeRow(rawRow);
+        const d = derive(rawRow);
+        const peNA = d.pe === null;
+        const psNA = d.ps === null;
+        const peClass = r.isBO ? "cheap"
+          : peNA ? "loss"
+          : boDer && boDer.pe && d.pe && d.pe > boDer.pe ? "expensive" : "";
+        const psClass = r.isBO ? "cheap"
+          : boDer && boDer.ps && d.ps && d.ps > boDer.ps ? "expensive" : "";
+        const npClass = !r.isBO && r.netProfit < 0 ? "loss" : "";
+        let priceLabel = "";
+        if (r.isBO) priceLabel = "Price: manual";
+        else if (r.lastPriceError) priceLabel = `Price: error`;
+        else if (r.lastPriceUpdate) priceLabel = `Price: live · ${relativeTime(r.lastPriceUpdate)}`;
+        else priceLabel = "Price: manual";
+        const asOfClass = !r.isBO && r.lastPriceError ? "stale" : !r.isBO && r.lastPriceUpdate ? "fresh" : "";
+        const tickerDisplay = (r.ticker || "").replace(/^HKG:/, "HKEX:");
+        const autoBadge = !r.isBO && r.autoUpdate && r.ticker ? ` <span class="badge auto">LIVE · ${escapeHtml(tickerDisplay)}</span>` : "";
+        const flag = r.country && COUNTRY_FLAGS[r.country]
+          ? `<span class="flag" title="${escapeHtml(r.country)}">${COUNTRY_FLAGS[r.country]}</span>`
+          : "";
+        const descLine = r.description ? `<span class="desc">${escapeHtml(r.description)}</span>` : "";
+        const catChip = r.category === "related"
+          ? '<span class="category-chip related">Crypto-Related</span>' : "";
+        const rowClass = r.isBO ? "bo" : (r.category === "related" ? "related" : "");
+        return `
+          <tr class="${rowClass}">
+            <td>
+              <span class="company-line">
+                ${flag}<span class="company-name">${escapeHtml(r.name)}</span>${r.isBO ? '<span class="badge">BO</span>' : autoBadge}${catChip}
+              </span>
+              ${descLine}
+              <span class="as-of ${asOfClass}">${priceLabel}</span>
+            </td>
+            <td class="col-price">${fmtNum(r.price, r.price < 100 ? 2 : 0)}</td>
+            <td class="col-shares">${fmtInt(r.shares)}</td>
+            <td class="col-marketCap">${fmtInt(d.marketCap)}</td>
+            <td class="col-revenue">${fmtInt(r.revenue)}</td>
+            <td class="col-netProfit ${npClass}">${fmtInt(r.netProfit)}</td>
+            <td class="col-pe ${peNA ? "na" : peClass}">${peNA ? "n/a" : fmtNum(d.pe)}</td>
+            <td class="col-ps ${psNA ? "na" : psClass}">${psNA ? "n/a" : fmtNum(d.ps)}</td>
+          </tr>
+        `;
+      }
+
+      function renderCharts() {
+        const visible = data.filter((r) => !r.hidden && !(settings.hideRelated && r.category === "related"));
+        const exchanges = visible.filter((r) => (r.category || "exchange") === "exchange");
+        const related = visible.filter((r) => r.category === "related");
+        const ordered = [...exchanges, ...related];
+        renderChart("peChart", ordered.map((r) => ({
+          name: r.name, asOf: r.asOf, isBO: r.isBO, country: r.country, category: r.category,
+          value: derive(r).pe,
+          naReason: derive(r).pe === null ? "unprofitable" : null,
+        })));
+        renderChart("psChart", ordered.map((r) => ({
+          name: r.name, asOf: r.asOf, isBO: r.isBO, country: r.country, category: r.category,
+          value: derive(r).ps,
+          naReason: derive(r).ps === null ? "no revenue" : null,
+        })));
+      }
+      function renderChart(targetId, rows) {
+        const max = Math.max(...rows.map((r) => (typeof r.value === "number" ? r.value : 0)), 1);
+        const html = rows.map((r) => {
+          const flag = r.country && COUNTRY_FLAGS[r.country]
+            ? `<span class="flag">${COUNTRY_FLAGS[r.country]}</span>`
+            : "";
+          if (r.value === null || !isFinite(r.value)) {
+            return `<div class="bar-row">
+              <div class="bar-label">${flag}${escapeHtml(r.name)}<span class="sub">${escapeHtml(r.asOf || "")}</span></div>
+              <div class="bar-track"><div class="bar-fill na" style="width:100%"></div></div>
+              <div class="bar-value na">${r.naReason || "n/a"}</div>
+            </div>`;
+          }
+          const pct = (r.value / max) * 100;
+          const fillClass = r.isBO ? "bo" : (r.category === "related" ? "related" : "");
+          return `<div class="bar-row">
+            <div class="bar-label">${flag}${escapeHtml(r.name)}<span class="sub">${escapeHtml(r.asOf || "")}</span></div>
+            <div class="bar-track"><div class="bar-fill ${fillClass}" style="width:${pct}%"></div></div>
+            <div class="bar-value ${r.isBO ? "bo" : ""}">${fmtNum(r.value)}x</div>
+          </div>`;
+        }).join("");
+        document.getElementById(targetId).innerHTML = html;
+      }
+
+      function renderDrawer() {
+        const body = document.getElementById("drawerBody");
+        const settingsHtml = `
+          <div class="edit-card" style="border-color: var(--brand-dark);">
+            <div class="edit-top">
+              <div class="name">Data Source · Google Sheet</div>
+            </div>
+            <div class="field full">
+              <label>Published CSV URL (File → Share → Publish to web → CSV)</label>
+              <input type="url" id="sheetUrlInput" value="${escapeHtml(settings.googleSheetCsvUrl || "")}" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" />
+            </div>
+            <a href="https://docs.google.com/spreadsheets/d/1WA9sJdt7FLqbmv6ikBbLvk9OwDxNw-ZTsBONJHGT9Vk/edit?gid=0#gid=0" target="_blank" rel="noopener" class="sheet-edit-link">Open Editable Sheet</a>
+          </div>
+          <div class="edit-card">
+            <div class="edit-top">
+              <div class="name">Display Toggles</div>
+            </div>
+            <div class="col-toggles" id="colToggles">
+              <span class="toggle-label">Columns:</span>
+              <button class="col-toggle" data-col="price">Price</button>
+              <button class="col-toggle" data-col="shares"># Shares</button>
+              <button class="col-toggle" data-col="marketCap">Market Cap</button>
+              <button class="col-toggle" data-col="revenue">Revenue</button>
+              <button class="col-toggle" data-col="netProfit">Net Profit</button>
+              <button class="col-toggle" data-col="pe">P / E</button>
+              <button class="col-toggle" data-col="ps">P / S</button>
+              <span class="col-toggle-divider"></span>
+              <span class="toggle-label">Rows:</span>
+              <button class="col-toggle related-toggle" data-col="related">Crypto-Related</button>
+            </div>
+          </div>
+        `;
+        const rowsHtml = data.map((r, idx) => {
+          const d = derive(r);
+          if (!r.isBO) {
+            const flag = r.country && COUNTRY_FLAGS[r.country] ? COUNTRY_FLAGS[r.country] + " " : "";
+            const tickerDisp = (r.ticker || "").replace(/^HKG:/, "HKEX:");
+            return `
+              <div class="edit-card readonly" data-idx="${idx}">
+                <div class="edit-top">
+                  <div class="name">
+                    ${flag}${escapeHtml(r.name || "Untitled")}
+                    ${r.ticker ? `<span class="badge auto">${escapeHtml(tickerDisp)}</span>` : ""}
+                  </div>
+                </div>
+                <div class="readonly-note">FY2025 from audited annual report · live price via Google Sheet</div>
+                <label class="toggle-row">
+                  <input type="checkbox" data-k="hidden" ${r.hidden ? "checked" : ""} />
+                  Hide this company from the table &amp; charts
+                </label>
+                <div class="derived">
+                  <div class="derived-chip">Market Cap<strong>${fmtInt(d.marketCap)}</strong></div>
+                  <div class="derived-chip">P / E<strong>${d.pe === null ? "n/a" : fmtNum(d.pe) + "x"}</strong></div>
+                  <div class="derived-chip">P / S<strong>${d.ps === null ? "n/a" : fmtNum(d.ps) + "x"}</strong></div>
+                </div>
+              </div>`;
+          }
+          const scenarios = r.scenarios || {
+            A: { label: "A", price: r.price, shares: r.shares, revenue: r.revenue, netProfit: r.netProfit, marketCapOverride: r.marketCapOverride },
+            B: { label: "B", price: r.price, shares: r.shares, revenue: r.revenue, netProfit: r.netProfit, marketCapOverride: r.marketCapOverride },
+          };
+          const active = r.activeScenario || "A";
+          const scenarioBlock = (key) => {
+            const s = scenarios[key] || {};
+            const isActive = key === active;
+            return `
+              <div class="scenario-block ${isActive ? "active" : ""}">
+                <div class="scenario-head">
+                  <span class="scenario-key">Scenario ${key}</span>
+                  <input type="text" class="scenario-label-input" data-scenario="${key}" data-k="label" value="${escapeHtml(s.label || key)}" placeholder="${key === "A" ? "Current" : "Target"}" />
+                  ${isActive ? '<span class="scenario-badge">Active</span>' : ""}
+                </div>
+                <div class="grid">
+                  <div class="field">
+                    <label>Price (THB / Share)</label>
+                    <input type="number" step="any" data-scenario="${key}" data-k="price" value="${s.price ?? 0}" />
+                  </div>
+                  <div class="field">
+                    <label>Shares (Millions)</label>
+                    <input type="number" step="any" data-scenario="${key}" data-k="shares" value="${s.shares ?? 0}" />
+                  </div>
+                  <div class="field">
+                    <label>Revenue (Mil THB)</label>
+                    <input type="number" step="any" data-scenario="${key}" data-k="revenue" value="${s.revenue ?? 0}" />
+                  </div>
+                  <div class="field">
+                    <label>Net Profit (Mil THB)</label>
+                    <input type="number" step="any" data-scenario="${key}" data-k="netProfit" value="${s.netProfit ?? 0}" />
+                  </div>
+                  <div class="field full">
+                    <label>Market Cap Override (Mil THB — 0 = Price × Shares)</label>
+                    <input type="number" step="any" data-scenario="${key}" data-k="marketCapOverride" value="${s.marketCapOverride ?? 0}" />
+                  </div>
+                </div>
+              </div>`;
+          };
+          return `
+            <div class="edit-card bo" data-idx="${idx}">
+              <div class="edit-top">
+                <div class="name">
+                  ${escapeHtml(r.name || "Untitled")}
+                  <span class="badge">BO</span>
+                </div>
+              </div>
+              <div class="grid">
+                <div class="field">
+                  <label>Company Name</label>
+                  <input type="text" data-k="name" value="${escapeHtml(r.name)}" />
+                </div>
+                <div class="field">
+                  <label>Short Description (&lt;5 words)</label>
+                  <input type="text" data-k="description" value="${escapeHtml(r.description || "")}" placeholder="e.g. Thai licensed crypto exchange" />
+                </div>
+                <div class="field">
+                  <label>Financials FY End (Revenue & Net Profit as of)</label>
+                  <input type="text" data-k="asOf" value="${escapeHtml(r.asOf || "")}" placeholder="e.g. 31 Dec 2025" />
+                </div>
+                <div class="field">
+                  <label>Country (2-letter code for flag)</label>
+                  <select data-k="country">
+                    <option value="">—</option>
+                    ${Object.keys(COUNTRY_FLAGS).map((c) => `<option value="${c}" ${r.country === c ? "selected" : ""}>${COUNTRY_FLAGS[c]} ${c}</option>`).join("")}
+                  </select>
+                </div>
+              </div>
+              <div class="scenario-grid">
+                ${scenarioBlock("A")}
+                ${scenarioBlock("B")}
+              </div>
+              <div class="grid">
+                <div class="field full">
+                  <label>Note (optional)</label>
+                  <input type="text" data-k="note" value="${escapeHtml(r.note || "")}" placeholder="e.g. manual override" />
+                </div>
+              </div>
+              <label class="toggle-row">
+                <input type="checkbox" data-k="hidden" ${r.hidden ? "checked" : ""} />
+                Hide this company from the table &amp; charts
+              </label>
+              <div class="derived">
+                <div class="derived-chip">Market Cap<strong>${fmtInt(d.marketCap)}</strong></div>
+                <div class="derived-chip">P / E<strong>${d.pe === null ? "n/a" : fmtNum(d.pe) + "x"}</strong></div>
+                <div class="derived-chip">P / S<strong>${d.ps === null ? "n/a" : fmtNum(d.ps) + "x"}</strong></div>
+              </div>
+            </div>`;
+        }).join("");
+        body.innerHTML = settingsHtml + rowsHtml;
+
+        const sheetInput = document.getElementById("sheetUrlInput");
+        if (sheetInput) {
+          sheetInput.addEventListener("input", (e) => {
+            settings.googleSheetCsvUrl = e.target.value.trim();
+            saveSettings();
+          });
+        }
+        body.querySelectorAll("#colToggles .col-toggle").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const k = btn.dataset.col;
+            if (k === "related") {
+              settings.hideRelated = !settings.hideRelated;
+            } else {
+              if (!settings.hiddenCols) settings.hiddenCols = {};
+              settings.hiddenCols[k] = !settings.hiddenCols[k];
+            }
+            saveSettings();
+            renderTable();
+            renderCharts();
+            renderColTogglesState();
+          });
+        });
+        renderColTogglesState();
+        body.querySelectorAll(".edit-card input:not(#sheetUrlInput), .edit-card select").forEach((input) => {
+          input.addEventListener("input", onFieldChange);
+          input.addEventListener("change", onFieldChange);
+        });
+        body.querySelectorAll('[data-action="delete"]').forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = Number(btn.dataset.idx);
+            if (confirm("Delete " + (data[idx]?.name || "this row") + "?")) {
+              data.splice(idx, 1);
+              save();
+              renderAll();
+            }
+          });
+        });
+      }
+
+      function onFieldChange(e) {
+        const input = e.currentTarget;
+        const card = input.closest(".edit-card");
+        if (!card) return;
+        const idx = Number(card.dataset.idx);
+        const key = input.dataset.k;
+        if (!key || !data[idx]) return;
+        const scen = input.dataset.scenario;
+        let target = data[idx];
+        if (scen) {
+          if (!target.scenarios) target.scenarios = {};
+          if (!target.scenarios[scen]) target.scenarios[scen] = {};
+          target = target.scenarios[scen];
+        }
+        if (input.type === "checkbox") target[key] = input.checked;
+        else if (input.type === "number") target[key] = input.value === "" ? 0 : Number(input.value);
+        else target[key] = input.value;
+        if (scen) renderScenarioToggle();
+
+        renderTable();
+        renderCharts();
+
+        const d = derive(data[idx]);
+        const chips = card.querySelectorAll(".derived-chip");
+        if (chips.length === 3) {
+          chips[0].innerHTML = "Market Cap<strong>" + fmtInt(d.marketCap) + "</strong>";
+          chips[1].innerHTML = "P / E<strong>" + (d.pe === null ? "n/a" : fmtNum(d.pe) + "x") + "</strong>";
+          chips[2].innerHTML = "P / S<strong>" + (d.ps === null ? "n/a" : fmtNum(d.ps) + "x") + "</strong>";
+        }
+        if (key === "isBO" || key === "autoUpdate") {
+          save();
+          renderDrawer();
+          return;
+        }
+        if (key === "name") {
+          const nameEl = card.querySelector(".edit-top .name");
+          const badge = nameEl.querySelector(".badge");
+          nameEl.innerHTML = escapeHtml(data[idx].name || "Untitled") + (badge ? " " + badge.outerHTML : "");
+        }
+        save();
+      }
+
+      /* ============ EVENTS ============ */
+      const drawer = document.getElementById("drawer");
+      const backdrop = document.getElementById("drawerBackdrop");
+      const openDrawer = () => {
+        drawer.classList.add("open"); backdrop.classList.add("open");
+        drawer.setAttribute("aria-hidden", "false");
+      };
+      const closeDrawer = () => {
+        drawer.classList.remove("open"); backdrop.classList.remove("open");
+        drawer.setAttribute("aria-hidden", "true");
+      };
+      document.getElementById("adminBtn").addEventListener("click", openDrawer);
+      document.getElementById("closeDrawerBtn").addEventListener("click", closeDrawer);
+      backdrop.addEventListener("click", closeDrawer);
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+      document.getElementById("printBtn").addEventListener("click", () => window.print());
+      document.getElementById("refreshBtn").addEventListener("click", () => refreshAll());
+
+      function renderScenarioToggle() {
+        const bo = primaryBO();
+        const toggle = document.getElementById("scenarioToggle");
+        if (!bo || !bo.scenarios) { toggle.style.display = "none"; return; }
+        toggle.style.display = "";
+        const active = bo.activeScenario || "A";
+        ["A", "B"].forEach((k) => {
+          const btn = document.getElementById("scenarioBtn" + k);
+          if (!btn) return;
+          const scen = bo.scenarios[k] || {};
+          btn.textContent = scen.label || k;
+          btn.classList.toggle("active", k === active);
+        });
+      }
+      document.querySelectorAll(".scenario-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const bo = primaryBO();
+          if (!bo) return;
+          bo.activeScenario = btn.dataset.scenario;
+          save();
+          renderScenarioToggle();
+          renderTable();
+          renderCharts();
+        });
+      });
+      document.getElementById("addRowBtn").addEventListener("click", () => {
+        data.push({
+          id: nextId++, name: "New Peer",
+          asOf: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+          price: 0, shares: 0, revenue: 0, netProfit: 0, isBO: false, note: "",
+        });
+        save(); renderAll();
+      });
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        if (confirm("Reset all data to defaults? This cannot be undone.")) {
+          data = structuredClone(DEFAULT_DATA);
+          nextId = Math.max(0, ...data.map((r) => r.id || 0)) + 1;
+          save(); renderAll();
+        }
+      });
+
+      function renderAll() {
+        renderScenarioToggle();
+        renderTable();
+        renderCharts();
+        renderDrawer();
+      }
+      renderAll();
+
+      // Auto-refresh prices on load if any peer is stale (>1h) or never updated
+      (function autoRefreshOnLoad() {
+        const targets = data.filter((r) => !r.isBO && r.autoUpdate && r.ticker);
+        if (!targets.length) { setStatus("No peers set to auto-update", "err"); return; }
+        const oldest = Math.min(...targets.map((r) => r.lastPriceUpdate || 0));
+        if (Date.now() - oldest > 60 * 60 * 1000) {
+          refreshAll();
+        } else {
+          setStatus("Prices fresh · last updated " + relativeTime(oldest), "ok");
+        }
+      })();
+    </script>
+  </body>
+</html>
