@@ -872,10 +872,11 @@
           const tickerCol = header.indexOf("ticker");
           const priceCol = header.findIndex((h) => /price.*thb/.test(h));
           const mcCol = header.findIndex((h) => /(market.*cap|marketcap|mcap).*thb/.test(h));
+          const priceNativeCol = header.findIndex((h) => /price.*native/.test(h));
           if (tickerCol < 0 || priceCol < 0) {
             throw new Error(`Need "Ticker" & "Price THB" cols. Found: [${header.join(", ")}]`);
           }
-          const prices = {}, mcaps = {};
+          const prices = {}, mcaps = {}, natives = {};
           for (let i = 1; i < rows.length; i++) {
             const t = (rows[i][tickerCol] || "").trim();
             const p = parseFloat((rows[i][priceCol] || "").replace(/[,\s]/g, ""));
@@ -884,12 +885,17 @@
               const m = parseFloat((rows[i][mcCol] || "").replace(/[,\s]/g, ""));
               if (t && isFinite(m) && m > 0) mcaps[t] = m;
             }
+            if (priceNativeCol >= 0) {
+              const n = parseFloat((rows[i][priceNativeCol] || "").replace(/[,\s]/g, ""));
+              if (t && isFinite(n) && n > 0) natives[t] = n;
+            }
           }
           let ok = 0, fail = 0, firstErr = "";
           for (const row of targets) {
             if (prices[row.ticker]) {
               row.price = prices[row.ticker];
               if (mcaps[row.ticker]) row.marketCapOverride = mcaps[row.ticker];
+              if (natives[row.ticker]) row.priceNative = natives[row.ticker];
               row.lastPriceUpdate = Date.now();
               row.lastPriceError = "";
               ok++;
@@ -1129,9 +1135,13 @@
               ${fmtNum(r.price, r.price < 100 ? 2 : 0)}
               ${(() => {
                 const cur = CURRENCY_BY_COUNTRY[r.country];
-                const fx = FX_TO_THB[cur];
-                if (!cur || cur === "THB" || !fx || !r.price) return "";
-                const native = r.price / fx;
+                if (!cur || cur === "THB") return "";
+                let native = r.priceNative;
+                if (!native) {
+                  const fx = FX_TO_THB[cur];
+                  if (!fx || !r.price) return "";
+                  native = r.price / fx;
+                }
                 const decimals = native < 10 ? 2 : native < 1000 ? 2 : 0;
                 return `<span class="native-price">${cur} ${fmtNum(native, decimals)}</span>`;
               })()}
