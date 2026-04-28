@@ -569,7 +569,6 @@
               <tr>
                 <th>Company</th>
                 <th class="col-price">Price <span class="unit">THB / Share · live</span></th>
-                <th class="col-shares"># Shares <span class="unit">Millions</span></th>
                 <th class="col-marketCap">Market Cap <span class="unit">Mil THB · live</span></th>
                 <th class="col-revenue">Revenue <span class="unit" id="revFyHeader">Mil THB</span></th>
                 <th class="col-netProfit">Net Profit <span class="unit" id="npFyHeader">Mil THB</span></th>
@@ -859,19 +858,25 @@
           const header = rows[0].map((h) => (h || "").trim().toLowerCase());
           const tickerCol = header.indexOf("ticker");
           const priceCol = header.findIndex((h) => /price.*thb/.test(h));
+          const mcCol = header.findIndex((h) => /(market.*cap|marketcap|mcap).*thb/.test(h));
           if (tickerCol < 0 || priceCol < 0) {
             throw new Error(`Need "Ticker" & "Price THB" cols. Found: [${header.join(", ")}]`);
           }
-          const prices = {};
+          const prices = {}, mcaps = {};
           for (let i = 1; i < rows.length; i++) {
             const t = (rows[i][tickerCol] || "").trim();
             const p = parseFloat((rows[i][priceCol] || "").replace(/[,\s]/g, ""));
             if (t && isFinite(p) && p > 0) prices[t] = p;
+            if (mcCol >= 0) {
+              const m = parseFloat((rows[i][mcCol] || "").replace(/[,\s]/g, ""));
+              if (t && isFinite(m) && m > 0) mcaps[t] = m;
+            }
           }
           let ok = 0, fail = 0, firstErr = "";
           for (const row of targets) {
             if (prices[row.ticker]) {
               row.price = prices[row.ticker];
+              if (mcaps[row.ticker]) row.marketCapOverride = mcaps[row.ticker];
               row.lastPriceUpdate = Date.now();
               row.lastPriceError = "";
               ok++;
@@ -1012,7 +1017,7 @@
         `;
       }
 
-      const COL_KEYS = ["price", "shares", "marketCap", "revenue", "netProfit", "pe", "ps"];
+      const COL_KEYS = ["price", "marketCap", "revenue", "netProfit", "pe", "ps"];
       function applyColumnHiding() {
         const table = document.getElementById("compTable");
         if (!table) return 0;
@@ -1108,7 +1113,6 @@
               <span class="as-of ${asOfClass}">${priceLabel}</span>
             </td>
             <td class="col-price">${fmtNum(r.price, r.price < 100 ? 2 : 0)}</td>
-            <td class="col-shares">${fmtInt(r.shares)}</td>
             <td class="col-marketCap">${fmtInt(d.marketCap)}</td>
             <td class="col-revenue">${fmtInt(r.revenue)}</td>
             <td class="col-netProfit ${npClass}">${fmtInt(r.netProfit)}</td>
@@ -1178,7 +1182,6 @@
             <div class="col-toggles" id="colToggles">
               <span class="toggle-label">Columns:</span>
               <button class="col-toggle" data-col="price">Price</button>
-              <button class="col-toggle" data-col="shares"># Shares</button>
               <button class="col-toggle" data-col="marketCap">Market Cap</button>
               <button class="col-toggle" data-col="revenue">Revenue</button>
               <button class="col-toggle" data-col="netProfit">Net Profit</button>
