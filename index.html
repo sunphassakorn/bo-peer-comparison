@@ -159,6 +159,10 @@
         font-size: 14px; text-align: right; font-variant-numeric: tabular-nums;
       }
       tbody td:first-child { text-align: left; font-weight: 600; }
+      tbody td .native-price {
+        display: block; font-size: 11px; color: var(--muted);
+        font-weight: 500; margin-top: 2px; letter-spacing: 0.3px;
+      }
       tbody tr.bo, tbody tr.bo td { background: var(--brand-softer); }
       tbody tr.bo td:first-child { border-left: 3px solid var(--brand); }
       tbody tr.bo .company-name { color: var(--brand); }
@@ -766,6 +770,15 @@
         DE: "\uD83C\uDDE9\uD83C\uDDEA",
         CN: "\uD83C\uDDE8\uD83C\uDDF3",
       };
+      // Native currency per country + FX to THB. Used to show small native price under THB price.
+      const CURRENCY_BY_COUNTRY = {
+        TH: "THB", HK: "HKD", US: "USD", ID: "IDR", SG: "SGD",
+        JP: "JPY", KR: "KRW", GB: "GBP", DE: "EUR", CN: "CNY",
+      };
+      const FX_TO_THB = {
+        THB: 1, HKD: 4.05, USD: 31.5, IDR: 0.00197, SGD: 23.5,
+        JPY: 0.21, KRW: 0.024, GBP: 41, EUR: 35, CNY: 4.4,
+      };
       const SETTINGS_KEY = "bo-peer-comparison-settings-v2";
 
       let data = load();
@@ -1112,7 +1125,17 @@
               ${descLine}
               <span class="as-of ${asOfClass}">${priceLabel}</span>
             </td>
-            <td class="col-price">${fmtNum(r.price, r.price < 100 ? 2 : 0)}</td>
+            <td class="col-price">
+              ${fmtNum(r.price, r.price < 100 ? 2 : 0)}
+              ${(() => {
+                const cur = CURRENCY_BY_COUNTRY[r.country];
+                const fx = FX_TO_THB[cur];
+                if (!cur || cur === "THB" || !fx || !r.price) return "";
+                const native = r.price / fx;
+                const decimals = native < 10 ? 2 : native < 1000 ? 2 : 0;
+                return `<span class="native-price">${cur} ${fmtNum(native, decimals)}</span>`;
+              })()}
+            </td>
             <td class="col-marketCap">${fmtInt(d.marketCap)}</td>
             <td class="col-revenue">${fmtInt(r.revenue)}</td>
             <td class="col-netProfit ${npClass}">${fmtInt(r.netProfit)}</td>
